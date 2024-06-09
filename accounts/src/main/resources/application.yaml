@@ -1,0 +1,127 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: "accounts"
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: ''
+  h2:
+    console:
+      enabled: true
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  config:
+    import: "optional:configserver:http://localhost:8071/"
+  profiles:
+    active: "prod"
+
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+    function:
+      definition: updateCommunication
+    stream:
+      bindings:
+        updateCommunication-in-0:
+          destination: communication-sent
+          group: "accounts"
+        sendCommunication-out-0:
+          destination: send-communication
+      kafka:
+        binder:
+          brokers:
+            - localhost:9092
+    kubernetes:
+      discovery:
+        all-namespaces: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  info:
+    env:
+      enabled: true
+
+  metrics:
+    tags:
+      application: "accounts"  #this is to tell micrometer and prometheus to group all metrics of this ms inside an application named accounts
+
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+    shutdown:
+      enabled: true
+
+endpoints:
+  shutdown:
+    enabled: true
+
+
+
+info:
+  app:
+    name: "accounts"
+    description: "Accounts Application"
+    version: "1.0.0"
+
+logging:
+  level:
+    com:
+      example:
+        accounts: DEBUG
+  pattern:
+    level: "%5p[accounts,%X{trace_id},%X{span_id}]"
+
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-type: count_based
+        sliding-window-size: 9
+        minimum-number-of-calls: 10
+        permitted-number-of-calls-in-half-open-state: 2
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 50
+        wait-duration-in-open-state:
+          nanos: 100000
+        slow-call-duration-threshold:
+          nanos: 1000
+
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration:
+          nanos: 100
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        ignore-exceptions:
+          - java.lang.NullPointerException
+        retry-exceptions:
+          -  java.util.concurrent.TimeoutException
+  ratelimiter:
+    configs:
+      default:
+        timeout-duration: 1000 #thread will wait for maximum of 1 sec for new refresh period
+        limit-refresh-period: 5000
+        limit-for-period: 1
+

@@ -1,0 +1,76 @@
+server:
+  port: 8072
+
+spring:
+  application:
+    name: "gatewayserver"
+  config:
+    import: "optional:configserver:http://localhost:8071/"
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 1000
+        response-timeout: 14s
+    kubernetes:
+      discovery:
+        enabled: true
+        all-namespaces: true
+    discovery:
+      client:
+        health-indicator:
+          enabled: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: "http://localhost:7080/realms/master/protocol/openid-connect/certs"
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    tags:
+      application: "gatewayserver"
+  info:
+    env:
+      enabled: true
+  gateway:
+    enabled: true
+
+info:
+  app:
+    name: "gatewayserver"
+    description: "Bank Api Gateway server"
+    version: "1.0.0"
+
+logging:
+  level:
+    com:
+      example:
+        gatewayserver: DEBUG
+  pattern:
+    level: "%5p[gatewayserver,%X{trace_id},%X{span_id}]"
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    serviceUrl:
+      defaultZone: http://localhost:8070/eureka/
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default: #can specify particular config name here
+        sliding-window-type: count_based
+        sliding-window-size: 10  #no of requests cb has to monitor
+        permitted-number-of-calls-in-half-open-state: 2
+        wait-duration-in-open-state:
+          nanos: 10000  #10 seconds
+        failure-rate-threshold: 50  #percentage hai yeh
+
+
+

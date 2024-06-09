@@ -1,0 +1,44 @@
+server:
+  port: 8071
+
+spring:
+  application:
+    name: "configserver"
+  profiles:
+    active: git
+  cloud:
+    config:
+      server:
+        git:
+          uri: "https://github.com/sahilkaul52/spring-cloud-config-v2.git"
+          default-label: main
+          timeout: 5
+          force-pull: true
+          clone-on-start: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    tags:
+      application: "configserver"
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+
+encrypt:
+  key: "45D81EC1EF61DF9AD8D3E5BB397F9"
+
+
+logging:
+  pattern:
+    level: "%5p[configserver,%X{trace_id},%X{span_id}]"
